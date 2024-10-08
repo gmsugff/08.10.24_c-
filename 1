@@ -1,0 +1,129 @@
+
+using System;
+    using System.IO;
+    using System.Reflection;
+    using System.Runtime.InteropServices;
+    using System.Text;
+
+
+namespace bxp32_08._10._24
+{
+   
+[AttributeUsage(AttributeTargets.Property)]
+    public class MaxLengthAttribute : Attribute
+    {
+        public int Length { get; }
+
+        public MaxLengthAttribute(int length)
+        {
+            Length = length;
+        }
+    }
+    public class User
+    {
+        [MaxLength(10)]
+        public string Name { get; set; }
+
+        public void Validate()
+        {
+            var properties = GetType().GetProperties();
+
+            foreach (var prop in properties)
+            {
+                var attr = (MaxLengthAttribute)Attribute.GetCustomAttribute(prop, typeof(MaxLengthAttribute));
+                if (attr != null)
+                {
+                    var value = (string)prop.GetValue(this);
+                    if (value != null && value.Length > attr.Length)
+                    {
+                        Console.WriteLine($"Ошибка: Длина {prop.Name} не должна превышать {attr.Length} символов.");
+                    }
+                }
+            }
+        }
+    } 
+
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    public class ParamsAttribute : Attribute
+    {
+        public string FileName { get; }
+
+        public ParamsAttribute(string fileName)
+        {
+            FileName = fileName;
+        }
+    }
+    
+    public class Config
+    {
+        [Params("config.ini")]
+        public string Setting1 { get; set; }
+
+        [Params("config.ini")]
+        public int Setting2 { get; set; }
+
+        [Params("settings.ini")]
+        public bool Setting3 { get; set; }
+
+        public void LoadSettings()
+        {
+            var properties = GetType().GetProperties();
+
+            foreach (var prop in properties)
+            {
+                var attr = (ParamsAttribute)Attribute.GetCustomAttribute(prop, typeof(ParamsAttribute));
+                if (attr != null)
+                {
+                    var filePath = attr.FileName;
+                    var iniValue = ReadIniValue(filePath, prop.Name);
+                    if (iniValue != null)
+                    {
+                        if (prop.PropertyType == typeof(int))
+                        {
+                            prop.SetValue(this, int.Parse(iniValue));
+                        }
+                        else if (prop.PropertyType == typeof(bool))
+                        {
+                            prop.SetValue(this, bool.Parse(iniValue));
+                        }
+                        else
+                        {
+                            prop.SetValue(this, iniValue);
+                        }
+                    }
+                }
+            }
+        }
+
+        private string ReadIniValue(string filePath, string key)
+        {
+            // Чтение ini-файла
+            // Для простоты, здесь предполагается структура файла ini.
+            foreach (var line in File.ReadAllLines(filePath))
+            {
+                var parts = line.Split('=');
+                if (parts.Length == 2 && parts[0].Trim() == key)
+                {
+                    return parts[1].Trim();
+                }
+            }
+            return null;
+        }
+    }
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("№1");
+            var config = new Config();
+            config.LoadSettings();
+
+            Console.WriteLine($"Setting1: {config.Setting1}");
+            Console.WriteLine($"Setting2: {config.Setting2}");
+            Console.WriteLine($"Setting3: {config.Setting3}");
+            Console.WriteLine( "№2");
+ var user = new User { Name = "Превышаю максимальную длину" };
+            user.Validate(); 
+        }
+    }
+}
